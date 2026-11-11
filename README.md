@@ -1,8 +1,10 @@
 # ecommerce-backend
 
-API e regras de negócio do e-commerce da ótica. Monólito modular em Go
-([ADR-0001](docs/decisions/0001-monolito-modular.md),
-[ADR-0002](docs/decisions/0002-go-chi.md)).
+API e regras de negócio do e-commerce da ótica. Monólito modular em Go + Chi.
+
+As decisões de arquitetura (ADRs) ficam no
+[Notion do projeto](https://app.notion.com/p/415cc60b2a2980b6b738f80c72276480)
+(ADR-0001 monólito modular, ADR-0002 Go + Chi).
 
 > **Fase atual:** configuração base. O binário apenas inicializa e encerra.
 > Servidor HTTP (Chi), PostgreSQL, logging, health checks e Docker chegam na
@@ -67,7 +69,6 @@ internal/           domínios (criados sob demanda) e código compartilhado
 migrations/         migrations do banco (Goose, etapa 3)
 deployments/        docker/ e kubernetes/
 tests/              integration/ e e2e/
-docs/decisions/     ADRs
 ```
 
 ## CI
@@ -77,4 +78,4 @@ docs/decisions/     ADRs
 
 ## Contribuindo
 
-Ver [CONTRIBUTING.md](CONTRIBUTING.md) (git flow, Conventional Commits, ADRs).
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) (git flow, Conventional Commits).
