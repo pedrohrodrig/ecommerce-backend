@@ -1,0 +1,36 @@
+# Configuração do golangci-lint v2.
+# Documentação: https://golangci-lint.run/docs/configuration/
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # "standard" = errcheck, govet, ineffassign, staticcheck, unused.
+  default: standard
+  enable:
+    - bodyclose # garante Close() no corpo das respostas HTTP
+    - errorlint # uso correto de errors.Is / errors.As e %w
+    - gocritic # sugestões de estilo e bugs comuns
+    - gosec # problemas de segurança
+    - noctx # requisições HTTP sem context.Context
+    - revive # sucessor do golint (nomes, comentários de exportados)
+    - unconvert # conversões de tipo desnecessárias
+    - unparam # parâmetros/retornos nunca usados
+  exclusions:
+    presets:
+      - std-error-handling
+    rules:
+      # Em testes, permitimos padrões mais livres de segurança.
+      - path: _test\.go
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/pedrohrodrig/ecommerce-backend
