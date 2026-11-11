@@ -1,0 +1,23 @@
+{
+  // Lint: usa o mesmo golangci-lint v2 e a mesma configuração (.golangci.yml) do CI.
+  "go.lintTool": "golangci-lint-v2",
+  "go.lintOnSave": "package",
+  "go.lintFlags": ["--path-mode=abs", "--fast-only"],
+
+  // Formatação: usa "golangci-lint fmt" (gofmt + goimports, conforme .golangci.yml),
+  // assim o que o editor formata é exatamente o que o lint exige.
+  "go.formatTool": "custom",
+  "go.alternateTools": {
+    "customFormatter": "golangci-lint"
+  },
+  "go.formatFlags": ["fmt", "--stdin"],
+
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  },
+  "files.eol": "\n"
+}
