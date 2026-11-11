@@ -64,12 +64,12 @@ configuração do CI. Requer o golangci-lint instalado no PATH (ver acima).
 ## Estrutura
 
 ```text
-cmd/api/            ponto de entrada da API
-internal/           domínios (criados sob demanda) e código compartilhado
-migrations/         migrations do banco (Goose, etapa 3)
-deployments/        docker/ e kubernetes/
-tests/              integration/ e e2e/
+cmd/api/      ponto de entrada da API
 ```
+
+As demais pastas (`internal/`, `migrations/`, `deployments/`, `tests/`) são
+criadas quando recebem o primeiro arquivo. A estrutura completa e o que vai em
+cada pasta estão em [CONTRIBUTING.md](CONTRIBUTING.md#estrutura-do-projeto).
 
 ## CI
 
