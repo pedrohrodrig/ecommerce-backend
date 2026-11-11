@@ -40,6 +40,42 @@ make test
 
 O CI roda as mesmas verificações e precisa estar verde para o merge.
 
+## Estrutura do projeto
+
+Pastas são criadas **somente quando recebem o primeiro arquivo** (o Git não
+versiona pastas vazias e evitamos arquivos `.gitkeep`). Esta é a estrutura
+alvo; ao criar uma pasta, siga o lugar indicado aqui.
+
+```text
+ecommerce-backend/
+├── cmd/
+│   ├── api/                 # binário da API HTTP
+│   └── worker/              # binário de jobs assíncronos (quando houver)
+├── internal/
+│   ├── platform/            # código técnico compartilhado (config, db, logging, http)
+│   └── <dominio>/           # um por domínio: identity, catalog, inventory,
+│       │                    # customers, cart, orders, payments, shipping
+│       ├── domain/          # entidades e regras de negócio, sem dependências externas
+│       ├── application/     # casos de uso
+│       ├── infrastructure/  # banco, storage, clientes externos
+│       └── transport/http/  # handlers HTTP
+├── migrations/              # migrations SQL (Goose)
+├── deployments/
+│   ├── docker/
+│   └── kubernetes/
+└── tests/
+    ├── integration/         # testes com banco/serviços reais
+    └── e2e/                 # testes ponta a ponta da API
+```
+
+Regras:
+
+- Um domínio não importa pacotes internos de outro domínio nem acessa suas
+  tabelas; a comunicação passa pela camada `application`.
+- Testes unitários ficam ao lado do código (`arquivo_test.go`); `tests/` é só
+  para integração e e2e.
+- Mudou a estrutura alvo? Atualize esta seção no mesmo PR.
+
 ## Decisões de arquitetura
 
 Decisões relevantes viram um ADR na base
