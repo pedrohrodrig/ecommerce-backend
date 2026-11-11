@@ -9,4 +9,4 @@
 ## Checklist
 
 - [ ] `make lint` e `make test` passam localmente
-- [ ] Documentação/ADR atualizada, se houver decisão nova
+- [ ] README atualizado e ADR registrado no Notion, se houver decisão nova

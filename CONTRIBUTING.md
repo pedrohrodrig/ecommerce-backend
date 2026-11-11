@@ -42,5 +42,5 @@ O CI roda as mesmas verificações e precisa estar verde para o merge.
 
 ## Decisões de arquitetura
 
-Decisões relevantes viram um ADR em `docs/decisions/`, a partir do
-[template](docs/decisions/0000-template.md).
+Decisões relevantes viram um ADR na base
+[ADRs do Notion do projeto](https://app.notion.com/p/415cc60b2a2980b6b738f80c72276480).
