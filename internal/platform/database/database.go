@@ -89,7 +89,7 @@ func connectFailureCause(err error) string {
 
 func describeServerError(sqlState string) string {
 	switch sqlState {
-	case "28P01", "28000":
+	case "28P01":
 		return "usuário ou senha inválidos"
 	case "3D000":
 		return "o banco de dados não existe"
