@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pedrohrodrig/ecommerce-backend/internal/platform/database"
 )
@@ -27,6 +28,7 @@ func main() {
 // run concentra a lógica do main e devolve um erro em vez de encerrar o
 // processo. Isso permite testá-la sem chamar os.Exit.
 func run(ctx context.Context, out io.Writer, databaseURL string) error {
+	databaseURL = strings.TrimSpace(databaseURL)
 	if databaseURL == "" {
 		return errors.New("DATABASE_URL não definida")
 	}
