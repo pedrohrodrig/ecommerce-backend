@@ -13,7 +13,7 @@ import (
 )
 
 // secrets são trechos das senhas usadas nos casos; nenhum pode aparecer num erro.
-var secrets = []string{"segredo", "Abc", "Def123"}
+var secrets = []string{"segredo", "Abc", "Def123", "12345", "ZqXsecret7", "Senha9", "ZqXss", "word"}
 
 func assertNoSecret(t *testing.T, msg string) {
 	t.Helper()
@@ -44,9 +44,14 @@ func TestOpenFalhaSemExporSenha(t *testing.T) {
 		{"parse: senha com espaços em keyword/value", "host=localhost password = segredo port=abc", "URL do banco inválida"},
 		{"parse: @ não codificado na senha", "postgres://u:Abc@Def123@localhost:abc/db", "URL do banco inválida"},
 		{"parse: só a senha", "segredo", "URL do banco inválida"},
+		{"parse: @ não codificado com porta válida", "postgres://u:Abc@Def123@localhost:1/db", "URL do banco inválida"},
+		{"parse: / não codificado na senha", "postgres://u:12345/ZqXsecret7@localhost:1/db", "URL do banco inválida"},
+		{"parse: @ e / não codificados na senha", "postgres://u:pa@ZqXss/word@localhost:1/db", "URL do banco inválida"},
 		{"conexão: porta fechada", "postgres://u:segredo@localhost:1/db", "banco de dados inacessível em localhost:1: "},
 		{"conexão: senha com espaços em keyword/value", "host=localhost password = segredo port=1", "banco de dados inacessível em localhost:1: "},
-		{"conexão: @ não codificado na senha", "postgres://u:Abc@Def123@localhost:1/db", "URL do banco inválida"},
+		// Como no libpq, ? e # antes do @ ficam na senha; a URL é aceita.
+		{"conexão: ? não codificado na senha", "postgres://u:12?Senha9@localhost:1/db", "banco de dados inacessível em localhost:1: "},
+		{"conexão: # não codificado na senha", "postgres://u:12#Senha9@localhost:1/db", "banco de dados inacessível em localhost:1: "},
 		{"conexão: nome da variável no valor", "DATABASE_URL=segredo", "banco de dados inacessível em localhost:1: "},
 		{"conexão: sem resposta", "postgres://u:segredo@" + silentAddr + "/db", "banco de dados inacessível em " + silentAddr + ": sem resposta em 500ms"},
 	}
