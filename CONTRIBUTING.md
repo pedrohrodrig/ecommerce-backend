@@ -59,7 +59,7 @@ ecommerce-backend/
 │       ├── application/     # casos de uso
 │       ├── infrastructure/  # banco, storage, clientes externos
 │       └── transport/http/  # handlers HTTP
-├── migrations/              # migrations SQL (Goose)
+├── migrations/              # migrations SQL (Goose) e embed.go (embed.FS)
 ├── deployments/
 │   ├── docker/
 │   └── kubernetes/
