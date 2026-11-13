@@ -13,6 +13,7 @@ func TestRunFalhaSemBanco(t *testing.T) {
 		want        string
 	}{
 		{"DATABASE_URL vazia", "", "DATABASE_URL não definida"},
+		{"DATABASE_URL só com espaços", " \t\n", "DATABASE_URL não definida"},
 		{"banco inacessível", "postgres://u:segredo@localhost:1/db", "banco de dados inacessível"},
 	}
 
