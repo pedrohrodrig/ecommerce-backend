@@ -6,14 +6,30 @@ import (
 	"testing"
 )
 
-func TestRun(t *testing.T) {
-	var out bytes.Buffer
-
-	if err := run(&out); err != nil {
-		t.Fatalf("run() retornou erro: %v", err)
+func TestRunFalhaSemBanco(t *testing.T) {
+	tests := []struct {
+		name        string
+		databaseURL string
+		want        string
+	}{
+		{"DATABASE_URL vazia", "", "DATABASE_URL não definida"},
+		{"banco inacessível", "postgres://u:segredo@localhost:1/db", "banco de dados inacessível"},
 	}
 
-	if !strings.Contains(out.String(), serviceName) {
-		t.Errorf("saída %q não contém o nome do serviço %q", out.String(), serviceName)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+
+			err := run(t.Context(), &out, tt.databaseURL)
+			if err == nil {
+				t.Fatal("run() não retornou erro")
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("erro %q não contém %q", err, tt.want)
+			}
+			if out.Len() != 0 {
+				t.Errorf("run() escreveu %q antes de conectar ao banco", out.String())
+			}
+		})
 	}
 }
