@@ -67,8 +67,13 @@ Até o Docker Compose chegar, suba o banco local com Docker:
 ```bash
 docker run --name ecommerce-postgres -d \
   -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ecommerce \
-  -p 5432:5432 postgres:18-alpine
+  -p 127.0.0.1:5432:5432 postgres:18-alpine
 ```
+
+A porta fica só em `127.0.0.1`, fora do alcance da rede. Antes de seguir,
+espere `docker logs ecommerce-postgres` mostrar `database system is ready to
+accept connections`; na primeira subida a linha aparece duas vezes (a primeira
+é do servidor temporário de inicialização), então espere a segunda.
 
 Defina a URL, aplique as migrations e rode a API:
 
@@ -88,8 +93,12 @@ go run ./cmd/api
 ```
 
 Se a porta 5432 já estiver em uso (por exemplo, um PostgreSQL instalado na
-máquina), publique outra (`-p 5433:5432`) e ajuste a porta na URL. Para parar e
-retomar o banco: `docker stop ecommerce-postgres` / `docker start ecommerce-postgres`.
+máquina), publique outra (`-p 127.0.0.1:5433:5432`) e ajuste a porta na URL.
+Para parar e retomar o banco: `docker stop ecommerce-postgres` /
+`docker start ecommerce-postgres`.
+
+O `sslmode=disable` serve só para o banco local; fora de localhost, use
+`sslmode=verify-full`.
 
 As migrations ficam em [`migrations/`](migrations), em SQL no formato do
 [Goose](https://github.com/pressly/goose): um arquivo `NNNNN_descricao.sql` com
