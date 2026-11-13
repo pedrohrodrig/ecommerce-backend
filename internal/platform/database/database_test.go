@@ -79,6 +79,7 @@ func TestConnectFailureCauseNaoRepassaTextoDaURL(t *testing.T) {
 	}{
 		{"timeout", context.DeadlineExceeded, "sem resposta em"},
 		{"senha errada", &pgconn.PgError{Code: "28P01", Message: `password authentication failed for user "segredo"`}, "usuário ou senha inválidos"},
+		{"acesso negado pelo pg_hba", &pgconn.PgError{Code: "28000", Message: `no pg_hba.conf entry for user "segredo"`}, "o servidor recusou a conexão (SQLSTATE 28000)"},
 		{"banco inexistente", &pgconn.PgError{Code: "3D000", Message: `database "segredo" does not exist`}, "o banco de dados não existe"},
 		{"outro erro do servidor", &pgconn.PgError{Code: "53300", Message: `too many connections for role "segredo"`}, "o servidor recusou a conexão (SQLSTATE 53300)"},
 		{"host não encontrado", &net.DNSError{Err: "no such host", Name: "Def123@localhost", IsNotFound: true}, "host não encontrado"},
