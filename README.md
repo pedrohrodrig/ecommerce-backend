@@ -42,19 +42,9 @@ golangci-lint version
 
 O `make lint`, o `make fmt` e os `make migrate-*` usam `go run` com a versão
 fixada, então funcionam mesmo sem o golangci-lint ou o Goose instalados. Sem
-make, troque `goose` por `go run github.com/pressly/goose/v3/cmd/goose@v3.30.1`.
+make, troque `goose` por `go run github.com/pressly/goose/v3/cmd/goose@v3.30.1`
+e defina antes as variáveis `GOOSE_*` (ver [Banco de dados](#banco-de-dados)).
 Os `make run` e `make migrate-*` exigem `DATABASE_URL` (ver abaixo).
-
-O Goose recebe a conexão pelo ambiente, e não pela linha de comando, para a
-senha não aparecer na lista de processos. Sem make, defina antes:
-
-```bash
-export GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" GOOSE_MIGRATION_DIR=migrations
-```
-
-```powershell
-$env:GOOSE_DRIVER = 'postgres'; $env:GOOSE_DBSTRING = $env:DATABASE_URL; $env:GOOSE_MIGRATION_DIR = 'migrations'
-```
 
 ## Banco de dados
 
@@ -83,6 +73,15 @@ make migrate-up
 make run    # imprime "ecommerce-backend: api inicializada"
 ```
 
+Sem make, o Goose lê a conexão das variáveis `GOOSE_*`, que o make já define.
+Elas vão pelo ambiente, e não pela linha de comando, para a senha não aparecer
+na lista de processos:
+
+```bash
+export GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" GOOSE_MIGRATION_DIR=migrations
+go run github.com/pressly/goose/v3/cmd/goose@v3.30.1 up
+```
+
 No PowerShell (sem make):
 
 ```powershell
@@ -91,6 +90,11 @@ $env:GOOSE_DRIVER = 'postgres'; $env:GOOSE_DBSTRING = $env:DATABASE_URL; $env:GO
 go run github.com/pressly/goose/v3/cmd/goose@v3.30.1 up
 go run ./cmd/api
 ```
+
+Escreva a `DATABASE_URL` no formato URL e codifique os caracteres especiais do
+usuário e da senha (ex.: `@` como `%40`, `/` como `%2F`). A API recusa uma URL
+ambígua sem mostrar a senha, mas os erros do Goose podem mostrar a string de
+conexão inteira.
 
 Se a porta 5432 já estiver em uso (por exemplo, um PostgreSQL instalado na
 máquina), publique outra (`-p 127.0.0.1:5433:5432`) e ajuste a porta na URL.
@@ -102,7 +106,9 @@ O `sslmode=disable` serve só para o banco local; fora de localhost, use
 
 As migrations ficam em [`migrations/`](migrations), em SQL no formato do
 [Goose](https://github.com/pressly/goose): um arquivo `NNNNN_descricao.sql` com
-as seções `-- +goose Up` e `-- +goose Down`.
+as seções `-- +goose Up` e `-- +goose Down`. O `make migrate-down` sem nenhuma
+migration aplicada termina com o erro `no current version found` do Goose; é o
+esperado.
 
 ## Lint e formatação
 
