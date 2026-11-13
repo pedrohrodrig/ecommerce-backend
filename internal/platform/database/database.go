@@ -27,8 +27,7 @@ var errInvalidURL = errors.New("URL do banco inválida: use postgres://usuario:s
 // As mensagens de erro nunca incluem texto da URL além de host e porta.
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(url)
-	// Um @ não codificado na senha faz o resto dela virar parte do host.
-	if err != nil || strings.Contains(cfg.ConnConfig.Host, "@") {
+	if err != nil || hasStrayAt(url) {
 		return nil, errInvalidURL
 	}
 
@@ -47,6 +46,23 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	}
 
 	return pool, nil
+}
+
+// hasStrayAt informa se sobra um @ depois do usuário e da senha da URL. Como o
+// libpq, o pgx encerra a senha no primeiro @ antes de qualquer /, então um / ou
+// @ sem codificar na senha joga o resto dela para host, porta ou banco.
+func hasStrayAt(connString string) bool {
+	rest, ok := strings.CutPrefix(connString, "postgresql://")
+	if !ok {
+		rest, ok = strings.CutPrefix(connString, "postgres://")
+	}
+	if !ok {
+		return false
+	}
+	if i := strings.IndexAny(rest, "@/"); i >= 0 && rest[i] == '@' {
+		rest = rest[i+1:]
+	}
+	return strings.Contains(rest, "@")
 }
 
 // connectFailureCause descreve a falha de conexão sem repassar o texto do pgx
