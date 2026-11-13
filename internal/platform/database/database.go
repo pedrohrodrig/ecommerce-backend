@@ -23,6 +23,9 @@ var pingTimeout = 5 * time.Second
 var errInvalidURL = errors.New("URL do banco inválida: use postgres://usuario:senha@host:porta/banco " +
 	"e codifique caracteres especiais do usuário e da senha (ex.: @ como %40)")
 
+// wsaECONNREFUSED é a recusa de conexão do Windows; syscall.WSAECONNREFUSED só compila lá.
+const wsaECONNREFUSED syscall.Errno = 10061
+
 // Open cria o pool de conexões a partir da URL e confirma que o banco responde.
 // As mensagens de erro nunca incluem texto da URL além de host e porta.
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
@@ -79,6 +82,8 @@ func connectFailureCause(err error) string {
 		return describeServerError(pgErr.Code)
 	case errors.As(err, &dnsErr):
 		return "host não encontrado"
+	case errors.Is(err, syscall.ECONNREFUSED), errors.Is(err, wsaECONNREFUSED):
+		return "conexão recusada"
 	case errors.As(err, &errno):
 		return errno.Error()
 	default:

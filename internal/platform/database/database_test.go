@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
 	"strings"
 	"syscall"
 	"testing"
@@ -47,7 +48,7 @@ func TestOpenFalhaSemExporSenha(t *testing.T) {
 		{"parse: @ não codificado com porta válida", "postgres://u:Abc@Def123@localhost:1/db", "URL do banco inválida"},
 		{"parse: / não codificado na senha", "postgres://u:12345/ZqXsecret7@localhost:1/db", "URL do banco inválida"},
 		{"parse: @ e / não codificados na senha", "postgres://u:pa@ZqXss/word@localhost:1/db", "URL do banco inválida"},
-		{"conexão: porta fechada", "postgres://u:segredo@localhost:1/db", "banco de dados inacessível em localhost:1: "},
+		{"conexão: porta fechada", "postgres://u:segredo@localhost:1/db", "banco de dados inacessível em localhost:1: conexão recusada"},
 		{"conexão: senha com espaços em keyword/value", "host=localhost password = segredo port=1", "banco de dados inacessível em localhost:1: "},
 		// Como no libpq, ? e # antes do @ ficam na senha; a URL é aceita.
 		{"conexão: ? não codificado na senha", "postgres://u:12?Senha9@localhost:1/db", "banco de dados inacessível em localhost:1: "},
@@ -83,6 +84,8 @@ func TestConnectFailureCauseNaoRepassaTextoDaURL(t *testing.T) {
 		{"banco inexistente", &pgconn.PgError{Code: "3D000", Message: `database "segredo" does not exist`}, "o banco de dados não existe"},
 		{"outro erro do servidor", &pgconn.PgError{Code: "53300", Message: `too many connections for role "segredo"`}, "o servidor recusou a conexão (SQLSTATE 53300)"},
 		{"host não encontrado", &net.DNSError{Err: "no such host", Name: "Def123@localhost", IsNotFound: true}, "host não encontrado"},
+		{"conexão recusada", &net.OpError{Op: "dial", Addr: &net.TCPAddr{}, Err: os.NewSyscallError("connect", syscall.ECONNREFUSED)}, "conexão recusada"},
+		{"conexão recusada no Windows", &net.OpError{Op: "dial", Addr: &net.TCPAddr{}, Err: os.NewSyscallError("connectex", wsaECONNREFUSED)}, "conexão recusada"},
 		{"erro do sistema", &net.OpError{Op: "dial", Addr: &net.TCPAddr{}, Err: syscall.Errno(1)}, syscall.Errno(1).Error()},
 		{"desconhecido", errors.New("falhou com segredo"), "falha ao conectar"},
 	}
