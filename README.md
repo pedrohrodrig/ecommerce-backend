@@ -36,14 +36,25 @@ golangci-lint version
 | `make test` | `go test -race ./...` | testes (o `-race` exige CGO; no Windows sem gcc, rode sem ele) |
 | `make lint` | `golangci-lint run` | lint + verificação de formatação |
 | `make fmt` | `golangci-lint fmt` | formata o código |
-| `make migrate-up` | `goose -dir migrations postgres "$DATABASE_URL" up` | aplica as migrations pendentes |
-| `make migrate-down` | `goose -dir migrations postgres "$DATABASE_URL" down` | desfaz a última migration |
-| `make migrate-status` | `goose -dir migrations postgres "$DATABASE_URL" status` | mostra o estado das migrations |
+| `make migrate-up` | `goose up` | aplica as migrations pendentes |
+| `make migrate-down` | `goose down` | desfaz a última migration |
+| `make migrate-status` | `goose status` | mostra o estado das migrations |
 
 O `make lint`, o `make fmt` e os `make migrate-*` usam `go run` com a versão
 fixada, então funcionam mesmo sem o golangci-lint ou o Goose instalados. Sem
 make, troque `goose` por `go run github.com/pressly/goose/v3/cmd/goose@v3.30.1`.
 Os `make run` e `make migrate-*` exigem `DATABASE_URL` (ver abaixo).
+
+O Goose recebe a conexão pelo ambiente, e não pela linha de comando, para a
+senha não aparecer na lista de processos. Sem make, defina antes:
+
+```bash
+export GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" GOOSE_MIGRATION_DIR=migrations
+```
+
+```powershell
+$env:GOOSE_DRIVER = 'postgres'; $env:GOOSE_DBSTRING = $env:DATABASE_URL; $env:GOOSE_MIGRATION_DIR = 'migrations'
+```
 
 ## Banco de dados
 
@@ -67,8 +78,14 @@ make migrate-up
 make run    # imprime "ecommerce-backend: api inicializada"
 ```
 
-No PowerShell, defina a variável com
-`$env:DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable'`.
+No PowerShell (sem make):
+
+```powershell
+$env:DATABASE_URL = 'postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable'
+$env:GOOSE_DRIVER = 'postgres'; $env:GOOSE_DBSTRING = $env:DATABASE_URL; $env:GOOSE_MIGRATION_DIR = 'migrations'
+go run github.com/pressly/goose/v3/cmd/goose@v3.30.1 up
+go run ./cmd/api
+```
 
 Se a porta 5432 já estiver em uso (por exemplo, um PostgreSQL instalado na
 máquina), publique outra (`-p 5433:5432`) e ajuste a porta na URL. Para parar e
