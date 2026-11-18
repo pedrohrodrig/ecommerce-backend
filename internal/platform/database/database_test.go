@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// secrets são trechos das senhas usadas nos casos; nenhum pode aparecer num erro.
 var secrets = []string{"segredo", "Abc", "Def123", "12345", "ZqXsecret7", "Senha9", "ZqXss", "word"}
 
 func assertNoSecret(t *testing.T, msg string) {
@@ -101,7 +100,6 @@ func TestConnectFailureCauseNaoRepassaTextoDaURL(t *testing.T) {
 	}
 }
 
-// startSilentServer aceita conexões TCP e nunca responde, como um banco travado.
 func startSilentServer(t *testing.T) string {
 	t.Helper()
 
