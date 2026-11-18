@@ -1,6 +1,3 @@
-# Atalhos de desenvolvimento. No Windows, use Git Bash, WSL ou rode os
-# comandos equivalentes descritos no README.
-
 BINARY := bin/api
 GOLANGCI_LINT_VERSION := v2.15.0
 GOOSE_VERSION := v3.30.1
@@ -13,41 +10,41 @@ GOOSE := GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DATABASE_URL" GOOSE_MIGRATION_D
 
 .PHONY: help run build test test-cover lint fmt tidy clean migrate-up migrate-down migrate-status require-database-url
 
-help: ## Lista os comandos disponíveis
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
+help:
+	@grep -oE '^[a-z][a-z-]+:' $(MAKEFILE_LIST) | tr -d ':' | grep -v '^require-'
 
-run: ## Executa a API
+run:
 	go run ./cmd/api
 
-build: ## Compila o binário em bin/api
+build:
 	go build -o $(BINARY) ./cmd/api
 
-test: ## Roda os testes com detector de race
+test:
 	go test -race ./...
 
-test-cover: ## Roda os testes e gera relatório de cobertura
+test-cover:
 	go test -race -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
-lint: ## Roda o golangci-lint (versão fixada)
+lint:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) run
 
-fmt: ## Formata o código
+fmt:
 	go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION) fmt
 
-tidy: ## Organiza go.mod e go.sum
+tidy:
 	go mod tidy
 
-clean: ## Remove artefatos de build
+clean:
 	rm -rf bin coverage.out
 
-migrate-up: require-database-url ## Aplica as migrations pendentes (requer DATABASE_URL)
+migrate-up: require-database-url
 	$(GOOSE) up
 
-migrate-down: require-database-url ## Desfaz a última migration (requer DATABASE_URL)
+migrate-down: require-database-url
 	$(GOOSE) down
 
-migrate-status: require-database-url ## Mostra o estado das migrations (requer DATABASE_URL)
+migrate-status: require-database-url
 	$(GOOSE) status
 
 require-database-url:
