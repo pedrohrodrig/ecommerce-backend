@@ -3,8 +3,7 @@ package migrations
 
 import "embed"
 
-// FS contém as migrations SQL, para aplicá-las a partir do código (ex.: testes
-// de integração).
+// FS contém as migrations SQL.
 //
 //go:embed *.sql
 var FS embed.FS

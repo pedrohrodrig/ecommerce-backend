@@ -1,8 +1,4 @@
 // Command api é o ponto de entrada da API HTTP do e-commerce.
-//
-// Nesta fase ele conecta ao PostgreSQL (DATABASE_URL), confirma que o banco
-// responde e encerra. O servidor HTTP com Chi, o pacote de configuração e o
-// graceful shutdown entram nas próximas tarefas da fundação do backend.
 package main
 
 import (
