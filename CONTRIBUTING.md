@@ -5,18 +5,18 @@
 | Branch | Papel |
 |---|---|
 | `main` | Código em produção. Só recebe merges de `release/*` (e `hotfix/*`). |
-| `develop` | Integração. Base de todo trabalho novo. |
-| `feature/<descricao>` | Uma funcionalidade ou ajuste. Sai de `develop` e volta por PR. |
-| `release/<versao>` | Preparação de uma versão. Sai de `develop`, entra em `main` e volta para `develop`. |
+| `dev` | Integração. Base de todo trabalho novo. |
+| `feature/<descricao>` | Uma funcionalidade ou ajuste. Sai de `dev` e volta por PR. |
+| `release/<versao>` | Preparação de uma versão. Sai de `dev`, entra em `main` e volta para `dev`. |
 
 Fluxo comum:
 
 ```bash
-git checkout develop && git pull
+git checkout dev && git pull
 git checkout -b feature/catalog-produtos
 # ... commits ...
 git push -u origin feature/catalog-produtos
-# abrir PR para develop
+# abrir PR para dev
 ```
 
 ## Commits

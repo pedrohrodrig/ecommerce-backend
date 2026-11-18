@@ -148,7 +148,7 @@ cada pasta estão em [CONTRIBUTING.md](CONTRIBUTING.md#estrutura-do-projeto).
 ## CI
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em PRs e pushes para
-`develop` e `main`: lint e formatação, `go vet` + testes e build.
+`dev` e `main`: lint e formatação, `go vet` + testes e build.
 
 ## Contribuindo
 
