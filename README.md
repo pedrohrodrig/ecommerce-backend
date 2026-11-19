@@ -6,10 +6,10 @@ As decisões de arquitetura (ADRs) ficam no
 [Notion do projeto](https://app.notion.com/p/415cc60b2a2980b6b738f80c72276480)
 (ADR-0001 monólito modular, ADR-0002 Go + Chi).
 
-> **Fase atual:** fundação do backend. O binário conecta ao PostgreSQL, confirma
-> que o banco responde e encerra; sem banco acessível ele não sobe. Servidor
-> HTTP (Chi), pacote de configuração, logging, health checks e Docker Compose
-> chegam nas próximas tarefas da etapa 3.
+> **Fase atual:** fundação do backend. A API lê a configuração do ambiente,
+> conecta ao PostgreSQL e sobe o servidor HTTP (Chi) com as rotas em `/v1`; sem
+> configuração válida ou sem banco acessível ela não sobe. Logging, health
+> checks, graceful shutdown e Docker Compose chegam nas próximas tarefas da etapa 3.
 
 ## Requisitos
 
@@ -46,13 +46,40 @@ O `make lint`, o `make fmt` e os `make migrate-*` usam `go run` com a versão
 fixada, então funcionam mesmo sem o golangci-lint ou o Goose instalados. Sem
 make, troque `goose` por `go run github.com/pressly/goose/v3/cmd/goose@v3.30.1`
 e defina antes as variáveis `GOOSE_*` (ver [Banco de dados](#banco-de-dados)).
-Os `make run` e `make migrate-*` exigem `DATABASE_URL` (ver abaixo).
+Os `make run` e `make migrate-*` exigem `DATABASE_URL` (ver
+[Configuração](#configuração)).
+
+## Configuração
+
+A API lê a configuração de variáveis de ambiente, todas documentadas em
+[`.env.example`](.env.example):
+
+| Variável | Obrigatória | Padrão | Para quê |
+|---|---|---|---|
+| `DATABASE_URL` | sim | | conexão com o PostgreSQL (ver [Banco de dados](#banco-de-dados)) |
+| `HTTP_PORT` | não | `8080` | porta HTTP da API |
+| `APP_ENV` | não | `development` | ambiente: `development` ou `production` |
+
+Se alguma variável faltar ou for inválida, a API encerra com código 1 e lista
+todos os problemas de uma vez.
+
+Para desenvolver, copie o exemplo e ajuste o que precisar:
+
+```bash
+cp .env.example .env
+```
+
+O `make` lê o `.env` sozinho (ele não é versionado). Os valores do `.env` têm
+prioridade sobre as variáveis do terminal; para sobrescrever um valor numa
+execução, passe-o ao make: `make run HTTP_PORT=9090`. Sem make, exporte as
+variáveis no terminal antes do `go run`. Em produção não há `.env`: as variáveis
+vêm do ambiente.
 
 ## Banco de dados
 
 A API usa PostgreSQL 18 (driver [pgx](https://github.com/jackc/pgx)) e lê a
-conexão da variável `DATABASE_URL`. Sem ela, ou com o banco inacessível, a API
-encerra com código 1 e uma mensagem explicando o motivo.
+conexão da variável `DATABASE_URL`. Com o banco inacessível, a API encerra com
+código 1 e uma mensagem explicando o motivo.
 
 Até o Docker Compose chegar, suba o banco local com Docker:
 
@@ -67,19 +94,23 @@ espere `docker logs ecommerce-postgres` mostrar `database system is ready to
 accept connections`; na primeira subida a linha aparece duas vezes (a primeira
 é do servidor temporário de inicialização), então espere a segunda.
 
-Defina a URL, aplique as migrations e rode a API:
+Com o `.env` criado (ver [Configuração](#configuração)), aplique as migrations e
+rode a API:
 
 ```bash
-export DATABASE_URL='postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable'
 make migrate-up
-make run    # imprime "ecommerce-backend: api inicializada"
+make run    # imprime "ecommerce-backend: ouvindo em http://localhost:8080/v1 (development)"
+curl http://localhost:8080/v1    # {"service":"ecommerce-backend"}
 ```
 
-Sem make, o Goose lê a conexão das variáveis `GOOSE_*`, que o make já define.
+Para parar a API, use Ctrl+C.
+
+Sem make, defina a `DATABASE_URL` no terminal. O Goose lê a conexão das variáveis `GOOSE_*`, que o make já define.
 Elas vão pelo ambiente, e não pela linha de comando, para a senha não aparecer
 na lista de processos:
 
 ```bash
+export DATABASE_URL='postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable'
 export GOOSE_DRIVER=postgres GOOSE_DBSTRING="$DATABASE_URL" GOOSE_MIGRATION_DIR=migrations
 go run github.com/pressly/goose/v3/cmd/goose@v3.30.1 up
 ```
@@ -159,10 +190,12 @@ configuração do CI. Requer o golangci-lint instalado no PATH (ver acima).
 ## Estrutura
 
 ```text
-cmd/api/                     ponto de entrada da API
-internal/platform/database/  pool de conexões com o PostgreSQL (pgx)
-migrations/                  migrations SQL (Goose) e embed.go, que as expõe como embed.FS
-tests/integration/           testes de integração com PostgreSQL em container
+cmd/api/                       ponto de entrada da API
+internal/platform/config/      leitura e validação das variáveis de ambiente
+internal/platform/database/    pool de conexões com o PostgreSQL (pgx)
+internal/platform/httpserver/  servidor HTTP e router Chi com as rotas em /v1
+migrations/                    migrations SQL (Goose) e embed.go, que as expõe como embed.FS
+tests/integration/             testes de integração com PostgreSQL em container
 ```
 
 As demais pastas (`deployments/`, `tests/e2e/` e os domínios em `internal/`) são
