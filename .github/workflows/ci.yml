@@ -49,6 +49,36 @@ jobs:
       - name: go test
         run: go test -race ./...
 
+  integration:
+    name: Testes de integração
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Testes de integração
+        run: make test-integration
+
+      - name: Cobertura (unitário + integração)
+        run: |
+          make test-cover
+          go tool cover -html=coverage.out -o coverage.html
+          total=$(go tool cover -func=coverage.out | tail -n 1 | awk '{print $NF}')
+          echo "Cobertura total (unitário + integração): **${total}**" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar cobertura
+        uses: actions/upload-artifact@v7
+        with:
+          name: cobertura
+          path: |
+            coverage.out
+            coverage.html
+
   build:
     name: Build
     runs-on: ubuntu-24.04
