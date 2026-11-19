@@ -36,6 +36,7 @@ docs: adiciona ADR-003
 make fmt
 make lint
 make test
+make test-integration   # se mexeu em banco, migrations ou tests/integration (exige Docker)
 ```
 
 O CI roda as mesmas verificações e precisa estar verde para o merge.
