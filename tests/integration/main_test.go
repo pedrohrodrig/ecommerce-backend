@@ -1,6 +1,5 @@
 //go:build integration
 
-// Package integration testa o backend contra um PostgreSQL real em container.
 package integration
 
 import (
@@ -54,7 +53,6 @@ func runWithPostgres(m *testing.M) int {
 }
 
 func startPostgres(ctx context.Context) (container *postgres.PostgresContainer, err error) {
-	// O testcontainers entra em pânico, em vez de devolver erro, quando não acha o Docker.
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)

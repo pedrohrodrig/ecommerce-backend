@@ -1,4 +1,3 @@
-// Package database abre o pool de conexões com o PostgreSQL.
 package database
 
 import (
@@ -15,19 +14,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// pingTimeout é variável só para os testes encurtarem a espera.
 var pingTimeout = 5 * time.Second
 
-// errInvalidURL é fixo porque o texto de erro do pgx ecoa trechos da URL,
-// e o mascaramento de senha dele falha em URLs malformadas.
 var errInvalidURL = errors.New("URL do banco inválida: use postgres://usuario:senha@host:porta/banco " +
 	"e codifique caracteres especiais do usuário e da senha (ex.: @ como %40)")
 
-// wsaECONNREFUSED é a recusa de conexão do Windows; syscall.WSAECONNREFUSED só compila lá.
 const wsaECONNREFUSED syscall.Errno = 10061
 
-// Open cria o pool de conexões a partir da URL e confirma que o banco responde.
-// As mensagens de erro nunca incluem texto da URL além de host e porta.
 func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(url)
 	if err != nil || hasStrayAt(url) {
@@ -51,9 +44,6 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-// hasStrayAt informa se sobra um @ depois do usuário e da senha da URL. Como o
-// libpq, o pgx encerra a senha no primeiro @ antes de qualquer /, então um / ou
-// @ sem codificar na senha joga o resto dela para host, porta ou banco.
 func hasStrayAt(connString string) bool {
 	rest, ok := strings.CutPrefix(connString, "postgresql://")
 	if !ok {
@@ -68,8 +58,6 @@ func hasStrayAt(connString string) bool {
 	return strings.Contains(rest, "@")
 }
 
-// connectFailureCause descreve a falha de conexão sem repassar o texto do pgx
-// nem a mensagem do servidor, que incluem usuário, banco e host vindos da URL.
 func connectFailureCause(err error) string {
 	var pgErr *pgconn.PgError
 	var dnsErr *net.DNSError
@@ -87,7 +75,6 @@ func connectFailureCause(err error) string {
 	case errors.As(err, &errno):
 		return errno.Error()
 	default:
-		// shortcut: causas sem classe (ex.: TLS) viram genéricas; classifique quando aparecerem.
 		return "falha ao conectar"
 	}
 }

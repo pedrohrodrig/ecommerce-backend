@@ -29,7 +29,6 @@ func TestOpenFalhaSemExporSenha(t *testing.T) {
 	pingTimeout = 500 * time.Millisecond
 	t.Cleanup(func() { pingTimeout = original })
 
-	// Strings keyword/value sem host e porta usam PGHOST/PGPORT; a porta 1 recusa conexões.
 	t.Setenv("PGHOST", "localhost")
 	t.Setenv("PGPORT", "1")
 
@@ -49,11 +48,9 @@ func TestOpenFalhaSemExporSenha(t *testing.T) {
 		{"parse: @ e / não codificados na senha", "postgres://u:pa@ZqXss/word@localhost:1/db", "URL do banco inválida"},
 		{"conexão: porta fechada", "postgres://u:segredo@localhost:1/db", "banco de dados inacessível em localhost:1: conexão recusada"},
 		{"conexão: senha com espaços em keyword/value", "host=localhost password = segredo port=1", "banco de dados inacessível em localhost:1: "},
-		// Como no libpq, ? e # antes do @ ficam na senha; a URL é aceita.
 		{"conexão: ? não codificado na senha", "postgres://u:12?Senha9@localhost:1/db", "banco de dados inacessível em localhost:1: "},
 		{"conexão: # não codificado na senha", "postgres://u:12#Senha9@localhost:1/db", "banco de dados inacessível em localhost:1: "},
 		{"conexão: nome da variável no valor", "DATABASE_URL=segredo", "banco de dados inacessível em localhost:1: "},
-		// URLs legítimas que o filtro de @ e / na senha não pode recusar.
 		{"conexão: sem usuário", "postgres://localhost:1/db", "banco de dados inacessível em localhost:1: "},
 		{"conexão: host IPv6", "postgres://u:segredo@[::1]:1/db", "banco de dados inacessível em [::1]:1: "},
 		{"conexão: vários hosts", "postgres://u:segredo@localhost:1,127.0.0.1:1/db", "banco de dados inacessível em localhost:1: "},

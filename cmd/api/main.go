@@ -1,4 +1,3 @@
-// Command api é o ponto de entrada da API HTTP do e-commerce.
 package main
 
 import (
@@ -21,8 +20,6 @@ func main() {
 	}
 }
 
-// run concentra a lógica do main e devolve um erro em vez de encerrar o
-// processo. Isso permite testá-la sem chamar os.Exit.
 func run(ctx context.Context, out io.Writer, databaseURL string) error {
 	databaseURL = strings.TrimSpace(databaseURL)
 	if databaseURL == "" {
