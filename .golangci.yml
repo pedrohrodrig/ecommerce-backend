@@ -1,4 +1,3 @@
-# Documentação: https://golangci-lint.run/docs/configuration/
 version: "2"
 
 run:
@@ -7,19 +6,19 @@ run:
     - integration
 
 linters:
-  # "standard" = errcheck, govet, ineffassign, staticcheck, unused.
   default: standard
   enable:
-    - bodyclose # garante Close() no corpo das respostas HTTP
-    - errorlint # uso correto de errors.Is / errors.As e %w
-    - gocritic # sugestões de estilo e bugs comuns
-    - gosec # problemas de segurança
-    - noctx # requisições HTTP sem context.Context
-    - revive # sucessor do golint (nomes, comentários de exportados)
-    - unconvert # conversões de tipo desnecessárias
-    - unparam # parâmetros/retornos nunca usados
+    - bodyclose
+    - errorlint
+    - gocritic
+    - gosec
+    - noctx
+    - revive
+    - unconvert
+    - unparam
   exclusions:
     presets:
+      - comments
       - std-error-handling
     rules:
       - path: _test\.go
