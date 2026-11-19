@@ -8,7 +8,7 @@ GOOSE := GOOSE_DRIVER=postgres GOOSE_DBSTRING="$$DATABASE_URL" GOOSE_MIGRATION_D
 
 .DEFAULT_GOAL := help
 
-.PHONY: help run build test test-cover lint fmt tidy clean migrate-up migrate-down migrate-status require-database-url
+.PHONY: help run build test test-integration test-cover lint fmt tidy clean migrate-up migrate-down migrate-status require-database-url
 
 help:
 	@grep -oE '^[a-z][a-z-]+:' $(MAKEFILE_LIST) | tr -d ':' | grep -v '^require-'
@@ -22,8 +22,11 @@ build:
 test:
 	go test -race ./...
 
+test-integration:
+	go test -race -tags=integration ./tests/integration/...
+
 test-cover:
-	go test -race -coverprofile=coverage.out ./...
+	go test -race -tags=integration -coverpkg=./... -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
 lint:
