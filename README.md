@@ -18,7 +18,7 @@ As decisões de arquitetura (ADRs) ficam no
 | [Go](https://go.dev/dl/) | 1.26 ou superior | compilar e testar |
 | [golangci-lint](https://golangci-lint.run/docs/welcome/install/) | v2.15.0 | lint e formatação no editor |
 | make (opcional) | qualquer | atalhos; no Windows vem com Git Bash/WSL ou via `winget install GnuWin32.Make` |
-| [Docker](https://docs.docker.com/get-started/get-docker/) | qualquer recente | PostgreSQL 18 local |
+| [Docker](https://docs.docker.com/get-started/get-docker/) | qualquer recente | PostgreSQL 18 local e testes de integração |
 
 Instalar o golangci-lint com Go (funciona no Windows, Linux e macOS):
 
@@ -33,7 +33,9 @@ golangci-lint version
 |---|---|---|
 | `make run` | `go run ./cmd/api` | executa a API |
 | `make build` | `go build -o bin/api ./cmd/api` | compila em `bin/api` |
-| `make test` | `go test -race ./...` | testes (o `-race` exige CGO; no Windows sem gcc, rode sem ele) |
+| `make test` | `go test -race ./...` | testes unitários (o `-race` exige CGO; no Windows sem gcc, rode sem ele) |
+| `make test-integration` | `go test -race -tags=integration ./tests/integration/...` | testes de integração (exigem Docker) |
+| `make test-cover` | `go test -race -tags=integration -coverpkg=./... -coverprofile=coverage.out ./...` e `go tool cover -func=coverage.out` | cobertura de unitário + integração (exige Docker) |
 | `make lint` | `golangci-lint run` | lint + verificação de formatação |
 | `make fmt` | `golangci-lint fmt` | formata o código |
 | `make migrate-up` | `goose up` | aplica as migrations pendentes |
@@ -110,6 +112,27 @@ as seções `-- +goose Up` e `-- +goose Down`. O `make migrate-down` sem nenhuma
 migration aplicada termina com o erro `no current version found` do Goose; é o
 esperado.
 
+## Testes
+
+- **Unitários** ficam ao lado do código (`arquivo_test.go`) e não precisam de
+  banco nem de Docker: `make test`.
+- **De integração** ficam em [`tests/integration/`](tests/integration), atrás da
+  build tag `integration`. Eles sobem um `postgres:18-alpine` em container com o
+  [Testcontainers](https://golang.testcontainers.org/), aplicam as migrations e
+  removem o container no fim: `make test-integration`. Exigem o Docker rodando
+  (sem ele, falham dizendo isso); sem a tag, o `go test ./...` nem compila
+  esse pacote. Não usam o banco local nem a porta 5432.
+- **Cobertura:** `make test-cover` roda unitário + integração juntos, grava
+  `coverage.out` e imprime o total. Para ver linha a linha no navegador:
+  `go tool cover -html=coverage.out`. No CI, o total aparece no resumo do job
+  "Testes de integração" e o `coverage.out` e o `coverage.html` ficam no
+  artefato `cobertura` da execução.
+
+No Docker Desktop, se o container `testcontainers/ryuk` cair logo ao subir
+(erro `unexpected container status "removing"`), defina
+`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock` antes de rodar os
+testes; no Git Bash, prefixe também `MSYS_NO_PATHCONV=1`.
+
 ## Lint e formatação
 
 Tudo é definido em [`.golangci.yml`](.golangci.yml):
@@ -139,16 +162,18 @@ configuração do CI. Requer o golangci-lint instalado no PATH (ver acima).
 cmd/api/                     ponto de entrada da API
 internal/platform/database/  pool de conexões com o PostgreSQL (pgx)
 migrations/                  migrations SQL (Goose) e embed.go, que as expõe como embed.FS
+tests/integration/           testes de integração com PostgreSQL em container
 ```
 
-As demais pastas (`deployments/`, `tests/` e os domínios em `internal/`) são
+As demais pastas (`deployments/`, `tests/e2e/` e os domínios em `internal/`) são
 criadas quando recebem o primeiro arquivo. A estrutura completa e o que vai em
 cada pasta estão em [CONTRIBUTING.md](CONTRIBUTING.md#estrutura-do-projeto).
 
 ## CI
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em PRs e pushes para
-`dev` e `main`: lint e formatação, `go vet` + testes e build.
+`dev` e `main`: lint e formatação, `go vet` + testes unitários, testes de
+integração com cobertura (ver [Testes](#testes)) e build.
 
 ## Contribuindo
 
