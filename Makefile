@@ -1,3 +1,6 @@
+-include .env
+export
+
 BINARY := bin/api
 GOLANGCI_LINT_VERSION := v2.15.0
 GOOSE_VERSION := v3.30.1
