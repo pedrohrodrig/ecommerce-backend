@@ -53,6 +53,11 @@ func TestOpenFalhaSemExporSenha(t *testing.T) {
 		{"conexão: ? não codificado na senha", "postgres://u:12?Senha9@localhost:1/db", "banco de dados inacessível em localhost:1: "},
 		{"conexão: # não codificado na senha", "postgres://u:12#Senha9@localhost:1/db", "banco de dados inacessível em localhost:1: "},
 		{"conexão: nome da variável no valor", "DATABASE_URL=segredo", "banco de dados inacessível em localhost:1: "},
+		// URLs legítimas que o filtro de @ e / na senha não pode recusar.
+		{"conexão: sem usuário", "postgres://localhost:1/db", "banco de dados inacessível em localhost:1: "},
+		{"conexão: host IPv6", "postgres://u:segredo@[::1]:1/db", "banco de dados inacessível em [::1]:1: "},
+		{"conexão: vários hosts", "postgres://u:segredo@localhost:1,127.0.0.1:1/db", "banco de dados inacessível em localhost:1: "},
+		{"conexão: @ codificado na senha", "postgres://u:Abc%40Def123@localhost:1/db", "banco de dados inacessível em localhost:1: conexão recusada"},
 		{"conexão: sem resposta", "postgres://u:segredo@" + silentAddr + "/db", "banco de dados inacessível em " + silentAddr + ": sem resposta em 500ms"},
 	}
 
