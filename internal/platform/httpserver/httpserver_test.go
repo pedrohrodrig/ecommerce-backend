@@ -15,7 +15,12 @@ func (f fakePinger) Ping(context.Context) error { return f.err }
 
 func newTestRouter(t *testing.T, pingErr error, logOutput io.Writer) http.Handler {
 	t.Helper()
-	return NewRouter("ecommerce-backend", fakePinger{pingErr}, slog.New(slog.NewJSONHandler(logOutput, nil)))
+	return NewRouter(RouterConfig{
+		ServiceName: "ecommerce-backend",
+		DB:          fakePinger{pingErr},
+		Logger:      slog.New(slog.NewJSONHandler(logOutput, nil)),
+		LogProbes:   true,
+	})
 }
 
 func serve(t *testing.T, router http.Handler, method, path string, header http.Header) *httptest.ResponseRecorder {

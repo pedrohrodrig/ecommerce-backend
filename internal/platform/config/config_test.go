@@ -16,7 +16,7 @@ func TestLoadAppliesDefaults(t *testing.T) {
 		t.Fatalf("Load() unexpected error: %v", err)
 	}
 
-	want := Config{Env: Development, HTTPPort: 8080, DatabaseURL: "postgres://localhost/db", LogLevel: slog.LevelInfo}
+	want := Config{Env: Development, HTTPPort: 8080, DatabaseURL: "postgres://localhost/db", LogLevel: slog.LevelInfo, LogProbes: true}
 	if cfg != want {
 		t.Errorf("Load() = %+v, want %+v", cfg, want)
 	}
@@ -28,12 +28,13 @@ func TestLoadReadsAllVariables(t *testing.T) {
 		"HTTP_PORT":    "9090",
 		"DATABASE_URL": " postgres://localhost/db ",
 		"LOG_LEVEL":    " DEBUG ",
+		"LOG_PROBES":   " false ",
 	}))
 	if err != nil {
 		t.Fatalf("Load() unexpected error: %v", err)
 	}
 
-	want := Config{Env: Production, HTTPPort: 9090, DatabaseURL: "postgres://localhost/db", LogLevel: slog.LevelDebug}
+	want := Config{Env: Production, HTTPPort: 9090, DatabaseURL: "postgres://localhost/db", LogLevel: slog.LevelDebug, LogProbes: false}
 	if cfg != want {
 		t.Errorf("Load() = %+v, want %+v", cfg, want)
 	}
@@ -52,10 +53,14 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 		{"HTTP_PORT zero", map[string]string{"DATABASE_URL": "x", "HTTP_PORT": "0"}, []string{`HTTP_PORT "0" is invalid`}},
 		{"HTTP_PORT above range", map[string]string{"DATABASE_URL": "x", "HTTP_PORT": "65536"}, []string{`HTTP_PORT "65536" is invalid`}},
 		{"LOG_LEVEL unknown", map[string]string{"DATABASE_URL": "x", "LOG_LEVEL": "verbose"}, []string{`LOG_LEVEL "verbose" is invalid`}},
+		{"LOG_PROBES not boolean", map[string]string{"DATABASE_URL": "x", "LOG_PROBES": "no"}, []string{`LOG_PROBES "no" is invalid`}},
 		{
 			"all problems at once",
-			map[string]string{"APP_ENV": "prod", "HTTP_PORT": "-1", "LOG_LEVEL": "trace"},
-			[]string{"DATABASE_URL is not set", `APP_ENV "prod" is invalid`, `HTTP_PORT "-1" is invalid`, `LOG_LEVEL "trace" is invalid`},
+			map[string]string{"APP_ENV": "prod", "HTTP_PORT": "-1", "LOG_LEVEL": "trace", "LOG_PROBES": "yes"},
+			[]string{
+				"DATABASE_URL is not set", `APP_ENV "prod" is invalid`, `HTTP_PORT "-1" is invalid`,
+				`LOG_LEVEL "trace" is invalid`, `LOG_PROBES "yes" is invalid`,
+			},
 		},
 	}
 

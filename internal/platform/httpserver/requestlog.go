@@ -15,7 +15,7 @@ const requestIDHeader = "X-Request-Id"
 
 var validRequestID = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 
-func logRequests(logger *slog.Logger) func(http.Handler) http.Handler {
+func logRequests(logger *slog.Logger, logProbes bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
@@ -25,6 +25,11 @@ func logRequests(logger *slog.Logger) func(http.Handler) http.Handler {
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			next.ServeHTTP(ww, r)
 
+			route := chi.RouteContext(r.Context()).RoutePattern()
+			if !logProbes && isProbe(route) {
+				return
+			}
+
 			status := ww.Status()
 			if status == 0 {
 				status = http.StatusOK
@@ -32,7 +37,7 @@ func logRequests(logger *slog.Logger) func(http.Handler) http.Handler {
 
 			logger.LogAttrs(r.Context(), slog.LevelInfo, "request",
 				slog.String("method", r.Method),
-				slog.String("route", chi.RouteContext(r.Context()).RoutePattern()),
+				slog.String("route", route),
 				slog.String("path", r.URL.Path),
 				slog.Int("status", status),
 				slog.Float64("duration_ms", float64(time.Since(start).Microseconds())/1000),
@@ -40,6 +45,10 @@ func logRequests(logger *slog.Logger) func(http.Handler) http.Handler {
 			)
 		})
 	}
+}
+
+func isProbe(route string) bool {
+	return route == livenessRoute || route == readinessRoute
 }
 
 func requestID(r *http.Request) string {

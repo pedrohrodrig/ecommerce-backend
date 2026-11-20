@@ -62,6 +62,7 @@ A API lê a configuração de variáveis de ambiente, todas documentadas em
 | `HTTP_PORT` | não | `8080` | porta HTTP da API |
 | `APP_ENV` | não | `development` | ambiente: `development` ou `production` |
 | `LOG_LEVEL` | não | `info` | nível mínimo de log: `debug`, `info`, `warn` ou `error` |
+| `LOG_PROBES` | não | `true` | loga as requisições a `/healthz` e `/readyz`; use `false` no Kubernetes |
 
 Se alguma variável faltar ou for inválida, a API encerra com código 1 e lista
 todos os problemas de uma vez.
@@ -172,6 +173,10 @@ no Chi, ex. `/v1/products/{id}`; vazio quando nenhuma rota casa), `path`,
 `X-Request-Id` quando o cliente manda um válido (até 64 caracteres entre letras,
 números, `.`, `_` e `-`); senão a API gera um. Ele sempre volta no header
 `X-Request-Id` da resposta, para cruzar uma reclamação com o log.
+
+No Kubernetes, os probes chamam `/healthz` e `/readyz` a cada poucos segundos.
+Com `LOG_PROBES=false`, essas requisições deixam de gerar a linha `request`; a
+falha do `/readyz` (`readiness check failed`) continua sendo logada.
 
 ## Desligamento
 

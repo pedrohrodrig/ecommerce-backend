@@ -29,6 +29,7 @@ type Config struct {
 	HTTPPort    int
 	DatabaseURL string
 	LogLevel    slog.Level
+	LogProbes   bool
 }
 
 func Load(getenv func(string) string) (Config, error) {
@@ -38,6 +39,7 @@ func Load(getenv func(string) string) (Config, error) {
 		Env:         Development,
 		HTTPPort:    defaultHTTPPort,
 		LogLevel:    slog.LevelInfo,
+		LogProbes:   true,
 		DatabaseURL: strings.TrimSpace(getenv("DATABASE_URL")),
 	}
 
@@ -66,6 +68,14 @@ func Load(getenv func(string) string) (Config, error) {
 			problems = append(problems, fmt.Sprintf("LOG_LEVEL %q is invalid: use debug, info, warn or error", raw))
 		}
 		cfg.LogLevel = level
+	}
+
+	if raw := strings.TrimSpace(getenv("LOG_PROBES")); raw != "" {
+		logProbes, err := strconv.ParseBool(raw)
+		if err != nil {
+			problems = append(problems, fmt.Sprintf("LOG_PROBES %q is invalid: use true or false", raw))
+		}
+		cfg.LogProbes = logProbes
 	}
 
 	if len(problems) > 0 {
