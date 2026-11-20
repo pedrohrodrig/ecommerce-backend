@@ -8,7 +8,7 @@ import (
 	"github.com/pedrohrodrig/ecommerce-backend/internal/platform/database"
 )
 
-func TestOpenConectaAoPostgres(t *testing.T) {
+func TestOpenConnectsToPostgres(t *testing.T) {
 	pool, err := database.Open(t.Context(), databaseURL)
 	if err != nil {
 		t.Fatalf("Open() = %v", err)

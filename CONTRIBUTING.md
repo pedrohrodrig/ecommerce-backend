@@ -19,6 +19,13 @@ git push -u origin feature/catalog-produtos
 # abrir PR para dev
 ```
 
+## Idioma
+
+Todo o código é escrito em inglês: identificadores, nomes de testes, mensagens
+de erro e de log, mensagens de falha dos testes e comentários (inclusive em
+arquivos de configuração como `.env.example` e `Makefile`). A documentação
+(README, CONTRIBUTING), os commits e os PRs ficam em português.
+
 ## Commits
 
 Seguimos [Conventional Commits](https://www.conventionalcommits.org/pt-br/):

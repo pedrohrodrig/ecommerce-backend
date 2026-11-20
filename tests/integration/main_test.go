@@ -35,11 +35,11 @@ func runWithPostgres(m *testing.M) int {
 	container, err := startPostgres(ctx)
 	defer func() {
 		if err := testcontainers.TerminateContainer(container); err != nil {
-			fmt.Fprintf(os.Stderr, "encerrar o container do PostgreSQL: %v\n", err)
+			fmt.Fprintf(os.Stderr, "terminate PostgreSQL container: %v\n", err)
 		}
 	}()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "os testes de integração exigem o Docker rodando; não foi possível subir %s: %v\n", postgresImage, err)
+		fmt.Fprintf(os.Stderr, "integration tests require Docker to be running; could not start %s: %v\n", postgresImage, err)
 		return 1
 	}
 
@@ -64,12 +64,12 @@ func startPostgres(ctx context.Context) (container *postgres.PostgresContainer, 
 func migrate(ctx context.Context, container *postgres.PostgresContainer) error {
 	url, err := container.ConnectionString(ctx, "sslmode=disable")
 	if err != nil {
-		return fmt.Errorf("obter a URL do PostgreSQL: %w", err)
+		return fmt.Errorf("get PostgreSQL URL: %w", err)
 	}
 
 	conn, err := sql.Open("pgx", url)
 	if err != nil {
-		return fmt.Errorf("abrir conexão para as migrations: %w", err)
+		return fmt.Errorf("open connection for migrations: %w", err)
 	}
 
 	provider, err := goose.NewProvider(goose.DialectPostgres, conn, migrations.FS)
@@ -78,7 +78,7 @@ func migrate(ctx context.Context, container *postgres.PostgresContainer) error {
 	}
 	if err != nil {
 		_ = conn.Close()
-		return fmt.Errorf("aplicar as migrations: %w", err)
+		return fmt.Errorf("apply migrations: %w", err)
 	}
 
 	databaseURL, db, migrator = url, conn, provider
