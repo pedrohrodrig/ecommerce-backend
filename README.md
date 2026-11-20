@@ -7,9 +7,11 @@ As decisões de arquitetura (ADRs) ficam no
 (ADR-0001 monólito modular, ADR-0002 Go + Chi).
 
 > **Fase atual:** fundação do backend. A API lê a configuração do ambiente,
-> conecta ao PostgreSQL e sobe o servidor HTTP (Chi) com as rotas em `/v1`; sem
-> configuração válida ou sem banco acessível ela não sobe. Logging, health
-> checks, graceful shutdown e Docker Compose chegam nas próximas tarefas da etapa 3.
+> conecta ao PostgreSQL e sobe o servidor HTTP (Chi) com as rotas em `/v1`, os
+> health checks `/healthz` e `/readyz`, log estruturado de cada requisição e
+> desligamento gracioso; sem configuração válida ou sem banco acessível ela não
+> sobe. Tratamento de erros, middlewares e Docker Compose chegam nas próximas
+> tarefas da etapa 3.
 
 ## Requisitos
 
@@ -59,6 +61,7 @@ A API lê a configuração de variáveis de ambiente, todas documentadas em
 | `DATABASE_URL` | sim | | conexão com o PostgreSQL (ver [Banco de dados](#banco-de-dados)) |
 | `HTTP_PORT` | não | `8080` | porta HTTP da API |
 | `APP_ENV` | não | `development` | ambiente: `development` ou `production` |
+| `LOG_LEVEL` | não | `info` | nível mínimo de log: `debug`, `info`, `warn` ou `error` |
 
 Se alguma variável faltar ou for inválida, a API encerra com código 1 e lista
 todos os problemas de uma vez.
@@ -99,11 +102,11 @@ rode a API:
 
 ```bash
 make migrate-up
-make run    # imprime "ecommerce-backend: listening on http://localhost:8080/v1 (development)"
+make run    # loga "server started" com url=http://localhost:8080/v1
 curl http://localhost:8080/v1    # {"service":"ecommerce-backend"}
 ```
 
-Para parar a API, use Ctrl+C.
+Para parar a API, use Ctrl+C (ver [Desligamento](#desligamento)).
 
 Sem make, defina a `DATABASE_URL` no terminal. O Goose lê a conexão das variáveis `GOOSE_*`, que o make já define.
 Elas vão pelo ambiente, e não pela linha de comando, para a senha não aparecer
@@ -142,6 +145,40 @@ As migrations ficam em [`migrations/`](migrations), em SQL no formato do
 as seções `-- +goose Up` e `-- +goose Down`. O `make migrate-down` sem nenhuma
 migration aplicada termina com o erro `no current version found` do Goose; é o
 esperado.
+
+## Health checks
+
+Ficam fora do `/v1` porque são da infraestrutura (Docker, Kubernetes), não da
+API pública:
+
+| Rota | Pergunta que responde | Respostas |
+|---|---|---|
+| `GET /healthz` | o processo está vivo? Não consulta o banco. | `200 {"status":"ok"}` |
+| `GET /readyz` | a API consegue atender? Faz um ping no PostgreSQL (limite de 2s). | `200 {"status":"ok"}` ou `503 {"status":"unavailable"}` |
+
+Quando o `/readyz` falha, o motivo aparece só no log (`readiness check failed`),
+nunca na resposta.
+
+## Logs
+
+A API usa o [`log/slog`](https://pkg.go.dev/log/slog) da biblioteca padrão e
+escreve na saída padrão. Com `APP_ENV=production` cada linha é um JSON; em
+`development` é texto `chave=valor`, mais fácil de ler no terminal. Os campos são
+os mesmos nos dois formatos. O nível mínimo vem de `LOG_LEVEL`.
+
+Cada requisição gera uma linha `request` com `method`, `route` (o padrão da rota
+no Chi, ex. `/v1/products/{id}`; vazio quando nenhuma rota casa), `path`,
+`status`, `duration_ms` e `request_id`. O request id é o do header
+`X-Request-Id` quando o cliente manda um válido (até 64 caracteres entre letras,
+números, `.`, `_` e `-`); senão a API gera um. Ele sempre volta no header
+`X-Request-Id` da resposta, para cruzar uma reclamação com o log.
+
+## Desligamento
+
+Ao receber SIGTERM (o que Docker e Kubernetes enviam) ou Ctrl+C, a API para de
+aceitar conexões novas, espera até 20s as requisições em andamento terminarem e
+só então fecha o pool do banco e sai com código 0. Se o prazo estourar, ela sai
+com código 1.
 
 ## Testes
 
@@ -193,7 +230,8 @@ configuração do CI. Requer o golangci-lint instalado no PATH (ver acima).
 cmd/api/                       ponto de entrada da API
 internal/platform/config/      leitura e validação das variáveis de ambiente
 internal/platform/database/    pool de conexões com o PostgreSQL (pgx)
-internal/platform/httpserver/  servidor HTTP e router Chi com as rotas em /v1
+internal/platform/httpserver/  servidor HTTP, router Chi, health checks, log de requisições e desligamento
+internal/platform/logging/     criação do logger (slog) conforme ambiente e nível
 migrations/                    migrations SQL (Goose) e embed.go, que as expõe como embed.FS
 tests/integration/             testes de integração com PostgreSQL em container
 ```
