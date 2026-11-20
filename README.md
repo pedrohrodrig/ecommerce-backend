@@ -99,7 +99,7 @@ rode a API:
 
 ```bash
 make migrate-up
-make run    # imprime "ecommerce-backend: ouvindo em http://localhost:8080/v1 (development)"
+make run    # imprime "ecommerce-backend: listening on http://localhost:8080/v1 (development)"
 curl http://localhost:8080/v1    # {"service":"ecommerce-backend"}
 ```
 

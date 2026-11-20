@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestRouterRespondeEmV1(t *testing.T) {
+func TestRouterServesV1(t *testing.T) {
 	router := NewRouter("ecommerce-backend")
 
 	for _, path := range []string{"/v1", "/v1/"} {
@@ -15,19 +15,19 @@ func TestRouterRespondeEmV1(t *testing.T) {
 			router.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, http.NoBody))
 
 			if rec.Code != http.StatusOK {
-				t.Fatalf("status = %d, quer %d", rec.Code, http.StatusOK)
+				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
 			}
 			if got := rec.Header().Get("Content-Type"); got != "application/json" {
-				t.Errorf("Content-Type = %q, quer application/json", got)
+				t.Errorf("Content-Type = %q, want application/json", got)
 			}
 			if got, want := rec.Body.String(), `{"service":"ecommerce-backend"}`; got != want {
-				t.Errorf("corpo = %s, quer %s", got, want)
+				t.Errorf("body = %s, want %s", got, want)
 			}
 		})
 	}
 }
 
-func TestRouterSoAtendeRotasVersionadas(t *testing.T) {
+func TestRouterOnlyServesVersionedRoutes(t *testing.T) {
 	router := NewRouter("ecommerce-backend")
 
 	tests := []struct {
@@ -46,19 +46,19 @@ func TestRouterSoAtendeRotasVersionadas(t *testing.T) {
 			router.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), tt.method, tt.path, http.NoBody))
 
 			if rec.Code != tt.want {
-				t.Errorf("status = %d, quer %d", rec.Code, tt.want)
+				t.Errorf("status = %d, want %d", rec.Code, tt.want)
 			}
 		})
 	}
 }
 
-func TestNewDefineEnderecoETimeouts(t *testing.T) {
+func TestNewSetsAddressAndTimeouts(t *testing.T) {
 	srv := New(9090, http.NotFoundHandler())
 
 	if srv.Addr != ":9090" {
-		t.Errorf("Addr = %q, quer :9090", srv.Addr)
+		t.Errorf("Addr = %q, want :9090", srv.Addr)
 	}
 	if srv.ReadHeaderTimeout <= 0 || srv.ReadTimeout <= 0 || srv.WriteTimeout <= 0 || srv.IdleTimeout <= 0 {
-		t.Errorf("servidor sem algum timeout: %+v", srv)
+		t.Errorf("server is missing a timeout: %+v", srv)
 	}
 }

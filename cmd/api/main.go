@@ -34,7 +34,7 @@ func run(ctx context.Context, getenv func(string) string, out io.Writer) error {
 
 	srv := httpserver.New(cfg.HTTPPort, httpserver.NewRouter(serviceName))
 
-	if _, err := fmt.Fprintf(out, "%s: ouvindo em http://localhost%s/v1 (%s)\n", serviceName, srv.Addr, cfg.Env); err != nil {
+	if _, err := fmt.Fprintf(out, "%s: listening on http://localhost%s/v1 (%s)\n", serviceName, srv.Addr, cfg.Env); err != nil {
 		return err
 	}
 	return srv.ListenAndServe()

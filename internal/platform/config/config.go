@@ -32,26 +32,26 @@ func Load(getenv func(string) string) (Config, error) {
 	}
 
 	if cfg.DatabaseURL == "" {
-		problems = append(problems, "DATABASE_URL não definida")
+		problems = append(problems, "DATABASE_URL is not set")
 	}
 
 	if raw := strings.TrimSpace(getenv("APP_ENV")); raw != "" {
 		cfg.Env = Environment(raw)
 		if cfg.Env != Development && cfg.Env != Production {
-			problems = append(problems, fmt.Sprintf("APP_ENV %q inválido: use %s ou %s", raw, Development, Production))
+			problems = append(problems, fmt.Sprintf("APP_ENV %q is invalid: use %s or %s", raw, Development, Production))
 		}
 	}
 
 	if raw := strings.TrimSpace(getenv("HTTP_PORT")); raw != "" {
 		port, err := strconv.Atoi(raw)
 		if err != nil || port < 1 || port > 65535 {
-			problems = append(problems, fmt.Sprintf("HTTP_PORT %q inválida: use um número entre 1 e 65535", raw))
+			problems = append(problems, fmt.Sprintf("HTTP_PORT %q is invalid: use a number between 1 and 65535", raw))
 		}
 		cfg.HTTPPort = port
 	}
 
 	if len(problems) > 0 {
-		return Config{}, errors.New("configuração inválida (veja .env.example):\n  - " + strings.Join(problems, "\n  - "))
+		return Config{}, errors.New("invalid configuration (see .env.example):\n  - " + strings.Join(problems, "\n  - "))
 	}
 	return cfg, nil
 }
