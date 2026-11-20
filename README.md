@@ -4,7 +4,9 @@ API e regras de negócio do e-commerce da ótica. Monólito modular em Go + Chi.
 
 As decisões de arquitetura (ADRs) ficam no
 [Notion do projeto](https://app.notion.com/p/415cc60b2a2980b6b738f80c72276480)
-(ADR-0001 monólito modular, ADR-0002 Go + Chi).
+(ADR-0001 monólito modular, ADR-0002 Go + Chi, ADR-0003 PostgreSQL com pgx
+e Goose, ADR-0004 configuração por variáveis de ambiente, ADR-0005 logs, health
+checks e desligamento, ADR-0006 código em inglês).
 
 > **Fase atual:** fundação do backend. A API lê a configuração do ambiente,
 > conecta ao PostgreSQL e sobe o servidor HTTP (Chi) com as rotas em `/v1`, os
