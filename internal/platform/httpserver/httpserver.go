@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
@@ -20,8 +21,13 @@ func New(port int, handler http.Handler) *http.Server {
 	}
 }
 
-func NewRouter(serviceName string) http.Handler {
+func NewRouter(serviceName string, db Pinger, logger *slog.Logger) http.Handler {
 	r := chi.NewRouter()
+	r.Use(logRequests(logger))
+
+	r.Get("/healthz", liveness)
+	r.Get("/readyz", readiness(db, logger))
+
 	r.Route("/v1", func(r chi.Router) {
 		r.Get("/", serviceInfo(serviceName))
 	})
