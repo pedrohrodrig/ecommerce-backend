@@ -52,4 +52,4 @@ migrate-status: require-database-url
 	$(GOOSE) status
 
 require-database-url:
-	@[ -n "$$(printf '%s' "$$DATABASE_URL" | tr -d '[:space:]')" ] || { echo "DATABASE_URL não definida. Ex.: export DATABASE_URL=postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable" >&2; exit 1; }
+	@[ -n "$$(printf '%s' "$$DATABASE_URL" | tr -d '[:space:]')" ] || { echo "DATABASE_URL is not set. E.g.: export DATABASE_URL=postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable" >&2; exit 1; }

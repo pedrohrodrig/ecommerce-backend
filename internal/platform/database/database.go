@@ -16,8 +16,8 @@ import (
 
 var pingTimeout = 5 * time.Second
 
-var errInvalidURL = errors.New("URL do banco inválida: use postgres://usuario:senha@host:porta/banco " +
-	"e codifique caracteres especiais do usuário e da senha (ex.: @ como %40)")
+var errInvalidURL = errors.New("invalid database URL: use postgres://user:password@host:port/database " +
+	"and percent-encode special characters in the user and password (e.g. @ as %40)")
 
 const wsaECONNREFUSED syscall.Errno = 10061
 
@@ -29,7 +29,7 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("criar pool de conexões: %w", err)
+		return nil, fmt.Errorf("create connection pool: %w", err)
 	}
 
 	pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
@@ -38,7 +38,7 @@ func Open(ctx context.Context, url string) (*pgxpool.Pool, error) {
 	if err := pool.Ping(pingCtx); err != nil {
 		pool.Close()
 		address := net.JoinHostPort(cfg.ConnConfig.Host, strconv.Itoa(int(cfg.ConnConfig.Port)))
-		return nil, fmt.Errorf("banco de dados inacessível em %s: %s", address, connectFailureCause(err))
+		return nil, fmt.Errorf("database unreachable at %s: %s", address, connectFailureCause(err))
 	}
 
 	return pool, nil
@@ -65,27 +65,27 @@ func connectFailureCause(err error) string {
 
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
-		return fmt.Sprintf("sem resposta em %s", pingTimeout)
+		return fmt.Sprintf("no response within %s", pingTimeout)
 	case errors.As(err, &pgErr):
 		return describeServerError(pgErr.Code)
 	case errors.As(err, &dnsErr):
-		return "host não encontrado"
+		return "host not found"
 	case errors.Is(err, syscall.ECONNREFUSED), errors.Is(err, wsaECONNREFUSED):
-		return "conexão recusada"
+		return "connection refused"
 	case errors.As(err, &errno):
 		return errno.Error()
 	default:
-		return "falha ao conectar"
+		return "connection failed"
 	}
 }
 
 func describeServerError(sqlState string) string {
 	switch sqlState {
 	case "28P01":
-		return "usuário ou senha inválidos"
+		return "invalid user or password"
 	case "3D000":
-		return "o banco de dados não existe"
+		return "database does not exist"
 	default:
-		return fmt.Sprintf("o servidor recusou a conexão (SQLSTATE %s)", sqlState)
+		return fmt.Sprintf("server rejected the connection (SQLSTATE %s)", sqlState)
 	}
 }
