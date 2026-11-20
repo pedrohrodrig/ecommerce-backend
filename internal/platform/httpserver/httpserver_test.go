@@ -1,18 +1,40 @@
 package httpserver
 
 import (
+	"context"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
+type fakePinger struct{ err error }
+
+func (f fakePinger) Ping(context.Context) error { return f.err }
+
+func newTestRouter(t *testing.T, pingErr error, logOutput io.Writer) http.Handler {
+	t.Helper()
+	return NewRouter("ecommerce-backend", fakePinger{pingErr}, slog.New(slog.NewJSONHandler(logOutput, nil)))
+}
+
+func serve(t *testing.T, router http.Handler, method, path string, header http.Header) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequestWithContext(t.Context(), method, path, http.NoBody)
+	for key, values := range header {
+		req.Header[key] = values
+	}
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	return rec
+}
+
 func TestRouterServesV1(t *testing.T) {
-	router := NewRouter("ecommerce-backend")
+	router := newTestRouter(t, nil, io.Discard)
 
 	for _, path := range []string{"/v1", "/v1/"} {
 		t.Run(path, func(t *testing.T) {
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, http.NoBody))
+			rec := serve(t, router, http.MethodGet, path, nil)
 
 			if rec.Code != http.StatusOK {
 				t.Fatalf("status = %d, want %d", rec.Code, http.StatusOK)
@@ -28,7 +50,7 @@ func TestRouterServesV1(t *testing.T) {
 }
 
 func TestRouterOnlyServesVersionedRoutes(t *testing.T) {
-	router := NewRouter("ecommerce-backend")
+	router := newTestRouter(t, nil, io.Discard)
 
 	tests := []struct {
 		method string
@@ -42,8 +64,7 @@ func TestRouterOnlyServesVersionedRoutes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
-			rec := httptest.NewRecorder()
-			router.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), tt.method, tt.path, http.NoBody))
+			rec := serve(t, router, tt.method, tt.path, nil)
 
 			if rec.Code != tt.want {
 				t.Errorf("status = %d, want %d", rec.Code, tt.want)
