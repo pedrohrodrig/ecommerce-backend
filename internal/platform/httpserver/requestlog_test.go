@@ -3,7 +3,9 @@ package httpserver
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"testing"
@@ -89,5 +91,50 @@ func TestGeneratedRequestIDsAreUnique(t *testing.T) {
 
 	if first == second {
 		t.Errorf("two requests got the same id %q", first)
+	}
+}
+
+func TestRequestLogCanOmitProbes(t *testing.T) {
+	tests := []struct {
+		path    string
+		wantLog bool
+	}{
+		{"/healthz", false},
+		{"/readyz", false},
+		{"/v1", true},
+		{"/unknown", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			var logs bytes.Buffer
+			router := NewRouter(RouterConfig{
+				ServiceName: "ecommerce-backend",
+				DB:          fakePinger{},
+				Logger:      slog.New(slog.NewJSONHandler(&logs, nil)),
+			})
+			rec := serve(t, router, http.MethodGet, tt.path, nil)
+
+			if got := strings.Contains(logs.String(), `"msg":"request"`); got != tt.wantLog {
+				t.Errorf("request logged = %v, want %v (logs: %s)", got, tt.wantLog, logs.String())
+			}
+			if rec.Header().Get(requestIDHeader) == "" {
+				t.Error("response has no request id")
+			}
+		})
+	}
+}
+
+func TestReadinessFailureIsLoggedEvenWithoutProbeLogs(t *testing.T) {
+	var logs bytes.Buffer
+	router := NewRouter(RouterConfig{
+		ServiceName: "ecommerce-backend",
+		DB:          fakePinger{errors.New("connection refused")},
+		Logger:      slog.New(slog.NewJSONHandler(&logs, nil)),
+	})
+	serve(t, router, http.MethodGet, "/readyz", nil)
+
+	if !strings.Contains(logs.String(), `"msg":"readiness check failed"`) {
+		t.Errorf("readiness failure was not logged: %s", logs.String())
 	}
 }

@@ -19,7 +19,11 @@ func TestReadinessFollowsDatabase(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 
-	router := httpserver.NewRouter("ecommerce-backend", pool, slog.New(slog.DiscardHandler))
+	router := httpserver.NewRouter(httpserver.RouterConfig{
+		ServiceName: "ecommerce-backend",
+		DB:          pool,
+		Logger:      slog.New(slog.DiscardHandler),
+	})
 	readyz := func() int {
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/readyz", http.NoBody))

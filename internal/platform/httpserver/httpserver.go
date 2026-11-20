@@ -21,15 +21,27 @@ func New(port int, handler http.Handler) *http.Server {
 	}
 }
 
-func NewRouter(serviceName string, db Pinger, logger *slog.Logger) http.Handler {
-	r := chi.NewRouter()
-	r.Use(logRequests(logger))
+type RouterConfig struct {
+	ServiceName string
+	DB          Pinger
+	Logger      *slog.Logger
+	LogProbes   bool
+}
 
-	r.Get("/healthz", liveness)
-	r.Get("/readyz", readiness(db, logger))
+const (
+	livenessRoute  = "/healthz"
+	readinessRoute = "/readyz"
+)
+
+func NewRouter(cfg RouterConfig) http.Handler {
+	r := chi.NewRouter()
+	r.Use(logRequests(cfg.Logger, cfg.LogProbes))
+
+	r.Get(livenessRoute, liveness)
+	r.Get(readinessRoute, readiness(cfg.DB, cfg.Logger))
 
 	r.Route("/v1", func(r chi.Router) {
-		r.Get("/", serviceInfo(serviceName))
+		r.Get("/", serviceInfo(cfg.ServiceName))
 	})
 	return r
 }

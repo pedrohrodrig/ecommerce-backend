@@ -42,7 +42,13 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 	}
 	defer pool.Close()
 
-	srv := httpserver.New(cfg.HTTPPort, httpserver.NewRouter(serviceName, pool, logger))
+	router := httpserver.NewRouter(httpserver.RouterConfig{
+		ServiceName: serviceName,
+		DB:          pool,
+		Logger:      logger,
+		LogProbes:   cfg.LogProbes,
+	})
+	srv := httpserver.New(cfg.HTTPPort, router)
 
 	var lc net.ListenConfig
 	ln, err := lc.Listen(ctx, "tcp", srv.Addr)
