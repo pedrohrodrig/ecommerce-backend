@@ -26,6 +26,7 @@ type RouterConfig struct {
 	DB          Pinger
 	Logger      *slog.Logger
 	LogProbes   bool
+	CORSOrigins []string
 }
 
 const (
@@ -35,7 +36,14 @@ const (
 
 func NewRouter(cfg RouterConfig) http.Handler {
 	r := chi.NewRouter()
-	r.Use(logRequests(cfg.Logger, cfg.LogProbes))
+	r.Use(
+		assignRequestID,
+		logRequests(cfg.Logger, cfg.LogProbes),
+		recoverPanics(cfg.Logger),
+		allowOrigins(cfg.CORSOrigins),
+	)
+	r.NotFound(notFound)
+	r.MethodNotAllowed(methodNotAllowed(r))
 
 	r.Get(livenessRoute, liveness)
 	r.Get(readinessRoute, readiness(cfg.DB, cfg.Logger))
