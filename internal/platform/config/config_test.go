@@ -2,6 +2,7 @@ package config
 
 import (
 	"log/slog"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -17,25 +18,28 @@ func TestLoadAppliesDefaults(t *testing.T) {
 	}
 
 	want := Config{Env: Development, HTTPPort: 8080, DatabaseURL: "postgres://localhost/db", LogLevel: slog.LevelInfo, LogProbes: true}
-	if cfg != want {
+	if !reflect.DeepEqual(cfg, want) {
 		t.Errorf("Load() = %+v, want %+v", cfg, want)
 	}
 }
 
 func TestLoadReadsAllVariables(t *testing.T) {
 	cfg, err := Load(env(map[string]string{
-		"APP_ENV":      " production ",
-		"HTTP_PORT":    "9090",
-		"DATABASE_URL": " postgres://localhost/db ",
-		"LOG_LEVEL":    " DEBUG ",
-		"LOG_PROBES":   " false ",
+		"APP_ENV":              " production ",
+		"HTTP_PORT":            "9090",
+		"DATABASE_URL":         " postgres://localhost/db ",
+		"LOG_LEVEL":            " DEBUG ",
+		"LOG_PROBES":           " false ",
+		"CORS_ALLOWED_ORIGINS": " https://Loja.example.com , http://localhost:3000",
 	}))
 	if err != nil {
 		t.Fatalf("Load() unexpected error: %v", err)
 	}
 
-	want := Config{Env: Production, HTTPPort: 9090, DatabaseURL: "postgres://localhost/db", LogLevel: slog.LevelDebug, LogProbes: false}
-	if cfg != want {
+	want := Config{Env: Production, HTTPPort: 9090, DatabaseURL: "postgres://localhost/db", LogLevel: slog.LevelDebug, LogProbes: false,
+		CORSOrigins: []string{"https://loja.example.com", "http://localhost:3000"},
+	}
+	if !reflect.DeepEqual(cfg, want) {
 		t.Errorf("Load() = %+v, want %+v", cfg, want)
 	}
 }
@@ -54,6 +58,12 @@ func TestLoadRejectsInvalidConfiguration(t *testing.T) {
 		{"HTTP_PORT above range", map[string]string{"DATABASE_URL": "x", "HTTP_PORT": "65536"}, []string{`HTTP_PORT "65536" is invalid`}},
 		{"LOG_LEVEL unknown", map[string]string{"DATABASE_URL": "x", "LOG_LEVEL": "verbose"}, []string{`LOG_LEVEL "verbose" is invalid`}},
 		{"LOG_PROBES not boolean", map[string]string{"DATABASE_URL": "x", "LOG_PROBES": "no"}, []string{`LOG_PROBES "no" is invalid`}},
+		{"CORS origin with wildcard", map[string]string{"DATABASE_URL": "x", "CORS_ALLOWED_ORIGINS": "*"}, []string{`CORS_ALLOWED_ORIGINS entry "*" is invalid`}},
+		{"CORS origin with wildcard subdomain", map[string]string{"DATABASE_URL": "x", "CORS_ALLOWED_ORIGINS": "https://*.example.com"}, []string{`CORS_ALLOWED_ORIGINS entry "https://*.example.com" is invalid`}},
+		{"CORS origin with path", map[string]string{"DATABASE_URL": "x", "CORS_ALLOWED_ORIGINS": "https://loja.example.com/"}, []string{`CORS_ALLOWED_ORIGINS entry "https://loja.example.com/" is invalid`}},
+		{"CORS origin without scheme", map[string]string{"DATABASE_URL": "x", "CORS_ALLOWED_ORIGINS": "loja.example.com"}, []string{`CORS_ALLOWED_ORIGINS entry "loja.example.com" is invalid`}},
+		{"CORS origin not http", map[string]string{"DATABASE_URL": "x", "CORS_ALLOWED_ORIGINS": "ftp://loja.example.com"}, []string{`CORS_ALLOWED_ORIGINS entry "ftp://loja.example.com" is invalid`}},
+		{"CORS empty entry", map[string]string{"DATABASE_URL": "x", "CORS_ALLOWED_ORIGINS": "https://a.example.com,,https://b.example.com"}, []string{`CORS_ALLOWED_ORIGINS entry "" is invalid`}},
 		{
 			"all problems at once",
 			map[string]string{"APP_ENV": "prod", "HTTP_PORT": "-1", "LOG_LEVEL": "trace", "LOG_PROBES": "yes"},

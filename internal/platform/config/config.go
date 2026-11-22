@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -30,6 +31,7 @@ type Config struct {
 	DatabaseURL string
 	LogLevel    slog.Level
 	LogProbes   bool
+	CORSOrigins []string
 }
 
 func Load(getenv func(string) string) (Config, error) {
@@ -78,8 +80,27 @@ func Load(getenv func(string) string) (Config, error) {
 		cfg.LogProbes = logProbes
 	}
 
+	if raw := strings.TrimSpace(getenv("CORS_ALLOWED_ORIGINS")); raw != "" {
+		for origin := range strings.SplitSeq(raw, ",") {
+			origin = strings.TrimSpace(origin)
+			if !isOrigin(origin) {
+				problems = append(problems, fmt.Sprintf("CORS_ALLOWED_ORIGINS entry %q is invalid: use scheme://host[:port], e.g. https://loja.example.com", origin))
+				continue
+			}
+			cfg.CORSOrigins = append(cfg.CORSOrigins, strings.ToLower(origin))
+		}
+	}
+
 	if len(problems) > 0 {
 		return Config{}, errors.New("invalid configuration (see .env.example):\n  - " + strings.Join(problems, "\n  - "))
 	}
 	return cfg, nil
+}
+
+func isOrigin(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || strings.Contains(u.Host, "*") {
+		return false
+	}
+	return strings.EqualFold(u.Scheme+"://"+u.Host, raw)
 }
