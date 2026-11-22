@@ -6,14 +6,15 @@ As decisões de arquitetura (ADRs) ficam no
 [Notion do projeto](https://app.notion.com/p/415cc60b2a2980b6b738f80c72276480)
 (ADR-0001 monólito modular, ADR-0002 Go + Chi, ADR-0003 PostgreSQL com pgx
 e Goose, ADR-0004 configuração por variáveis de ambiente, ADR-0005 logs, health
-checks e desligamento, ADR-0006 código em inglês).
+checks e desligamento, ADR-0006 código em inglês, ADR-0007 erros Problem
+Details e CORS com origens explícitas).
 
 > **Fase atual:** fundação do backend. A API lê a configuração do ambiente,
 > conecta ao PostgreSQL e sobe o servidor HTTP (Chi) com as rotas em `/v1`, os
-> health checks `/healthz` e `/readyz`, log estruturado de cada requisição e
-> desligamento gracioso; sem configuração válida ou sem banco acessível ela não
-> sobe. Tratamento de erros, middlewares e Docker Compose chegam nas próximas
-> tarefas da etapa 3.
+> health checks `/healthz` e `/readyz`, log estruturado de cada requisição,
+> erros no formato Problem Details, recuperação de panic, CORS e desligamento
+> gracioso; sem configuração válida ou sem banco acessível ela não sobe. O
+> Docker Compose chega na próxima tarefa da etapa 3.
 
 ## Requisitos
 
@@ -65,6 +66,7 @@ A API lê a configuração de variáveis de ambiente, todas documentadas em
 | `APP_ENV` | não | `development` | ambiente: `development` ou `production` |
 | `LOG_LEVEL` | não | `info` | nível mínimo de log: `debug`, `info`, `warn` ou `error` |
 | `LOG_PROBES` | não | `true` | loga as requisições a `/healthz` e `/readyz`; use `false` no Kubernetes |
+| `CORS_ALLOWED_ORIGINS` | não | vazio | origens do navegador que podem chamar a API, separadas por vírgula (ver [CORS](#cors)) |
 
 Se alguma variável faltar ou for inválida, a API encerra com código 1 e lista
 todos os problemas de uma vez.
@@ -180,6 +182,49 @@ No Kubernetes, os probes chamam `/healthz` e `/readyz` a cada poucos segundos.
 Com `LOG_PROBES=false`, essas requisições deixam de gerar a linha `request`; a
 falha do `/readyz` (`readiness check failed`) continua sendo logada.
 
+## Erros
+
+Toda resposta de erro da API segue o formato
+[Problem Details (RFC 9457)](https://www.rfc-editor.org/rfc/rfc9457), com
+`Content-Type: application/problem+json`, o mesmo do schema `Problem` do
+[ecommerce-contracts](https://github.com/pedrohrodrig/ecommerce-contracts):
+
+```json
+{"title":"Not Found","status":404}
+```
+
+- `title` é o nome padrão do status HTTP e `status`, o código.
+- `detail` (opcional) explica a ocorrência para quem chamou. Nunca leva a causa
+  interna (erro do banco, stack, valor do panic); isso vai só para o log.
+- Rota inexistente responde 404 e método não suportado responde 405 com o
+  header `Allow` listando os métodos aceitos, ambos nesse formato.
+- Os handlers escrevem erros com `httpserver.WriteProblem(w, status, detail)`.
+
+Os health checks são a exceção: respondem `{"status":...}` (ver
+[Health checks](#health-checks)).
+
+### Panic
+
+Se um handler entrar em panic, a API não cai: responde `500` no formato acima,
+sem expor o motivo, e loga uma linha `panic recovered` em nível `ERROR` com
+`panic`, `stack`, `route` e `request_id`. A linha `request` da mesma requisição
+mostra `status=500`. Se o handler já tinha começado a responder, a conexão é
+encerrada, para o cliente não tomar uma resposta pela metade como sucesso.
+
+## CORS
+
+Só as origens listadas em `CORS_ALLOWED_ORIGINS` podem chamar a API pelo
+navegador. Cada origem é `esquema://host[:porta]` (ex.:
+`https://loja.example.com`), sem barra no fim; `*` e curingas são recusados na
+subida. Vazio (o padrão) bloqueia toda chamada de outra origem, o que não afeta
+chamadas feitas por servidor (como o Next.js no servidor) nem `curl`.
+
+Para origens permitidas a API aceita `GET`, `POST`, `PUT`, `PATCH` e `DELETE`,
+os headers `Accept`, `Authorization`, `Content-Type` e `X-Request-Id`, expõe o
+`X-Request-Id` ao JavaScript e deixa o navegador guardar o preflight por 10
+minutos. Cookies não são enviados entre origens; isso muda junto com a
+autenticação, se ela precisar.
+
 ## Desligamento
 
 Ao receber SIGTERM (o que Docker e Kubernetes enviam) ou Ctrl+C, a API para de
@@ -237,7 +282,7 @@ configuração do CI. Requer o golangci-lint instalado no PATH (ver acima).
 cmd/api/                       ponto de entrada da API
 internal/platform/config/      leitura e validação das variáveis de ambiente
 internal/platform/database/    pool de conexões com o PostgreSQL (pgx)
-internal/platform/httpserver/  servidor HTTP, router Chi, health checks, log de requisições e desligamento
+internal/platform/httpserver/  servidor HTTP, router Chi, middlewares (request id, log, panic, CORS), erros, health checks e desligamento
 internal/platform/logging/     criação do logger (slog) conforme ambiente e nível
 migrations/                    migrations SQL (Goose) e embed.go, que as expõe como embed.FS
 tests/integration/             testes de integração com PostgreSQL em container
