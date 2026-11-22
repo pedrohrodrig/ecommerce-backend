@@ -47,6 +47,7 @@ func run(ctx context.Context, getenv func(string) string, logOutput io.Writer) e
 		DB:          pool,
 		Logger:      logger,
 		LogProbes:   cfg.LogProbes,
+		CORSOrigins: cfg.CORSOrigins,
 	})
 	srv := httpserver.New(cfg.HTTPPort, router)
 

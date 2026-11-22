@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+const testOrigin = "https://loja.example.com"
+
 type fakePinger struct{ err error }
 
 func (f fakePinger) Ping(context.Context) error { return f.err }
@@ -20,6 +22,7 @@ func newTestRouter(t *testing.T, pingErr error, logOutput io.Writer) http.Handle
 		DB:          fakePinger{pingErr},
 		Logger:      slog.New(slog.NewJSONHandler(logOutput, nil)),
 		LogProbes:   true,
+		CORSOrigins: []string{testOrigin},
 	})
 }
 
@@ -58,21 +61,26 @@ func TestRouterOnlyServesVersionedRoutes(t *testing.T) {
 	router := newTestRouter(t, nil, io.Discard)
 
 	tests := []struct {
-		method string
-		path   string
-		want   int
+		method    string
+		path      string
+		want      int
+		wantAllow string
 	}{
-		{http.MethodGet, "/", http.StatusNotFound},
-		{http.MethodGet, "/v2", http.StatusNotFound},
-		{http.MethodPost, "/v1", http.StatusMethodNotAllowed},
+		{http.MethodGet, "/", http.StatusNotFound, ""},
+		{http.MethodGet, "/v2", http.StatusNotFound, ""},
+		{http.MethodGet, "/v1/unknown", http.StatusNotFound, ""},
+		{http.MethodPost, "/v1", http.StatusMethodNotAllowed, "GET"},
+		{http.MethodPut, "/v1/", http.StatusMethodNotAllowed, "GET"},
+		{http.MethodDelete, "/healthz", http.StatusMethodNotAllowed, "GET"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.method+" "+tt.path, func(t *testing.T) {
 			rec := serve(t, router, tt.method, tt.path, nil)
 
-			if rec.Code != tt.want {
-				t.Errorf("status = %d, want %d", rec.Code, tt.want)
+			assertProblem(t, rec, tt.want)
+			if got := rec.Header().Get("Allow"); got != tt.wantAllow {
+				t.Errorf("Allow = %q, want %q", got, tt.wantAllow)
 			}
 		})
 	}
